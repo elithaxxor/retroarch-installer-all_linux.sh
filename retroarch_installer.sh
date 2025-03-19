@@ -22,6 +22,21 @@ print_msg() {
     esac
 }
 
+# Function to display a progress spinner
+show_spinner() {
+    local pid=$1
+    local delay=0.1
+    local spinstr='|/-\'
+    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+        local temp=${spinstr#?}
+        printf " [%c]  " "$spinstr"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
+
 # Function to check if script is run with root privileges
 check_root() {
     if [ "$EUID" -ne 0 ]; then
@@ -59,19 +74,23 @@ detect_package_manager() {
 # Function to install RetroArch
 install_retroarch() {
     print_msg "info" "Updating package lists..."
-    $PKG_UPDATE
+    $PKG_UPDATE &
+    show_spinner $!
 
     print_msg "info" "Installing RetroArch and dependencies..."
     
     case $PKG_MANAGER in
         "apt")
-            $PKG_INSTALL retroarch libretro-* mesa-utils glshim
+            $PKG_INSTALL retroarch libretro-* mesa-utils glshim &
+            show_spinner $!
             ;;
         "dnf" | "yum")
-            $PKG_INSTALL retroarch mesa-libGL mesa-dri-drivers
+            $PKG_INSTALL retroarch mesa-libGL mesa-dri-drivers &
+            show_spinner $!
             ;;
         "pacman")
-            $PKG_INSTALL retroarch libretro mesa
+            $PKG_INSTALL retroarch libretro mesa &
+            show_spinner $!
             ;;
     esac
     
@@ -123,13 +142,16 @@ install_cores() {
     # Use package manager to install cores if supported
     case $PKG_MANAGER in
         "apt")
-            $PKG_INSTALL libretro-snes9x libretro-nestopia libretro-mupen64plus libretro-mgba libretro-genesisplusgx libretro-desmume
+            $PKG_INSTALL libretro-snes9x libretro-nestopia libretro-mupen64plus libretro-mgba libretro-genesisplusgx libretro-desmume &
+            show_spinner $!
             ;;
         "dnf" | "yum")
-            $PKG_INSTALL libretro-snes9x libretro-nestopia libretro-mupen64plus libretro-mgba libretro-genesisplusgx
+            $PKG_INSTALL libretro-snes9x libretro-nestopia libretro-mupen64plus libretro-mgba libretro-genesisplusgx &
+            show_spinner $!
             ;;
         "pacman")
-            $PKG_INSTALL libretro-snes9x libretro-nestopia libretro-mupen64plus libretro-mgba libretro-genesis-plus-gx
+            $PKG_INSTALL libretro-snes9x libretro-nestopia libretro-mupen64plus libretro-mgba libretro-genesis-plus-gx &
+            show_spinner $!
             ;;
     esac
     
@@ -224,11 +246,36 @@ EOL
     print_msg "success" "Desktop shortcut created."
 }
 
+# Function to log script output
+log_output() {
+    exec > >(tee -i retroarch_installer.log)
+    exec 2>&1
+}
+
+# Function to display installation summary
+display_summary() {
+    print_msg "info" "Installation Summary:"
+    print_msg "info" "RetroArch installed successfully."
+    print_msg "info" "Directories created:"
+    print_msg "info" "$RETROARCH_DIR"
+    print_msg "info" "$ROMS_DIR"
+    print_msg "info" "$SYSTEM_DIR"
+    print_msg "info" "$SAVES_DIR"
+    print_msg "info" "$STATES_DIR"
+    print_msg "info" "Cores installed:"
+    print_msg "info" "libretro-snes9x, libretro-nestopia, libretro-mupen64plus, libretro-mgba, libretro-genesisplusgx, libretro-desmume"
+    print_msg "info" "Configuration file created/updated at:"
+    print_msg "info" "$CONFIG_FILE"
+    print_msg "info" "Desktop shortcut created at:"
+    print_msg "info" "$DESKTOP_FILE"
+}
+
 # Main function
 main() {
     print_msg "info" "RetroArch Auto-Installer and Configuration Script"
     print_msg "info" "Starting installation process..."
     
+    log_output
     check_root
     detect_package_manager
     install_retroarch
@@ -246,6 +293,8 @@ main() {
         USER_HOME=$HOME
     fi
     print_msg "info" "$USER_HOME/RetroArch/roms/<system>/"
+    
+    display_summary
 }
 
 # Execute main function
