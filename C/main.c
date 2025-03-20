@@ -1,3 +1,6 @@
+Here is the complete script for the `main.c` file that integrates the `bios_downloader.sh` functionality:
+
+```c
 /**************************************************************
  * RetroArch Auto-Installer and Configuration Script in C
  * 
@@ -387,23 +390,25 @@ void configure_retroarch() {
  * Steps 7–9 (Optional, via Interactive Menu)
  *======================================================================*/
 
+/* Function to execute shell script */
+void execute_shell_script() {
+    print_msg("info", "Executing BIOS downloader shell script...");
+
+    /* Command to execute the shell script */
+    const char *script_path = "./C/bios_downloader.sh";
+    char cmd[512];
+    snprintf(cmd, sizeof(cmd), "bash %s", script_path);
+
+    if (system(cmd) != 0) {
+        print_msg("error", "Failed to execute BIOS downloader shell script.");
+    } else {
+        print_msg("success", "BIOS downloader shell script executed successfully.");
+    }
+}
+
 /* Placeholder for BIOS download/placement */
 void download_bios() {
-    print_msg("info", "Attempting to place or download BIOS files...");
-
-    /* Typically you'd have some logic to:
-       1) Download BIOS from a known server
-       2) Prompt the user to place them manually
-       etc.
-
-       For now, we just warn that the user must do so manually.
-    */
-    char bios_path[512];
-    snprintf(bios_path, sizeof(bios_path), "%s/RetroArch/system", g_homeDir);
-
-    char msg[512];
-    snprintf(msg, sizeof(msg), "BIOS must be manually placed in: %s", bios_path);
-    print_msg("warning", msg);
+    execute_shell_script();
 }
 
 void enable_autostart() {
@@ -487,50 +492,4 @@ void interactive_menu() {
         printf("---------------------------------------------\n");
         printf("Enter your choice: ");
 
-        /* Read user input. If not numeric, it defaults to 0. */
-        if (scanf("%d", &choice) != 1) {
-            // Clear invalid input
-            while (getchar() != '\n');
-            choice = -1; // Force re-loop
-        }
-
-        switch (choice) {
-            case 1:
-                download_bios();
-                break;
-            case 2:
-                enable_autostart();
-                break;
-            case 3:
-                create_desktop_shortcut();
-                break;
-            case 0:
-                printf("Exiting optional features menu...\n");
-                break;
-            default:
-                printf("Invalid choice. Please try again.\n");
-                break;
-        }
-    } while (choice != 0);
-}
-
-/*======================================================================
- * main()
- *======================================================================*/
-int main() {
-    print_msg("info", "Starting RetroArch installation (C program).");
-
-    check_root();
-    identify_user();
-    detect_package_manager();
-    install_retroarch();
-    setup_directories();
-    install_cores();
-    configure_retroarch();
-
-    /* Now show interactive menu for steps 7, 8, 9 */
-    interactive_menu();
-
-    print_msg("success", "RetroArch setup complete! You can launch it from your system’s menu or via 'retroarch' command.");
-    return 0;
-}
+        /* Read user input. If not numeric, it defaults to 
